@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 from bark import generate_audio, preload_models
 from scipy.io.wavfile import write
-import tempfile, glob
+import tempfile, glob, os
 
 app = FastAPI()
 preload_models()
@@ -13,12 +13,12 @@ async def speak(req: Request):
     text = data.get("text", "")
     if not text:
         return {"error": "Missing 'text'"}
-    wav = generate_audio(text)
-    f = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-    write(f.name, 24000, wav)
+    audio_array = generate_audio(text)
+    temp = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+    write(temp.name, 24000, audio_array)
     return {"url": "/audio.wav"}
 
 @app.get("/audio.wav")
 def audio():
-    files = sorted(glob.glob("/tmp/*.wav"), key=lambda x: os.path.getctime(x), reverse=True)
+    files = sorted(glob.glob("/tmp/*.wav"), key=os.path.getctime, reverse=True)
     return FileResponse(files[0], media_type="audio/wav", filename="output.wav")
